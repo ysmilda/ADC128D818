@@ -6,28 +6,28 @@
 
 typedef struct ADC128_configuration
 {
-    bool start; // Starts the conversions.
-    bool interupt_enable;
-    bool clear_interrupt;
-    bool clear_initialization; // Reinitialize resets all the settings
+    bool start = 0; // Starts the conversions.
+    bool interupt_enable = 0;
+    bool clear_interrupt = 0;
+    bool clear_initialization = 0; // Reinitialize resets all the settings
 };
 
 typedef struct ADC128_advanced_configuration
 {
-    bool external_reference_enable;
-    uint8_t selected_mode; // For the reference of the modes please check the datasheet.
+    bool external_reference_enable = 0;
+    uint8_t selected_mode = 0; // For the reference of the modes please check the datasheet.
 };
 
 typedef struct ADC128_channels // A reuseable struct for all the registers containing bit data about all the channels.
 {
-    bool channel_0;
-    bool channel_1;
-    bool channel_2;
-    bool channel_3;
-    bool channel_4;
-    bool channel_5;
-    bool channel_6;
-    bool channel_7;
+    bool channel_0 = 0;
+    bool channel_1 = 0;
+    bool channel_2 = 0;
+    bool channel_3 = 0;
+    bool channel_4 = 0;
+    bool channel_5 = 0;
+    bool channel_6 = 0;
+    bool channel_7 = 0;
 
     uint8_t to_byte(void)
     {
@@ -45,6 +45,12 @@ typedef struct ADC128_channels // A reuseable struct for all the registers conta
         channel_6 = (input >> 6) & 0x01;
         channel_7 = (input >> 7) & 0x01;
     }
+};
+
+enum conversion_rate
+{
+    LOW_POWER,
+    CONTINUOUS
 };
 
 class ADC128
@@ -91,7 +97,6 @@ private:
     bool write(uint8_t command, uint8_t data);
 
     uint8_t _configuration = 0x08;
-    uint8_t _mode = 0;
 
     uint8_t _i2caddr;
     TwoWire *_i2c;
@@ -111,7 +116,7 @@ private:
         CHANNEL_LIMITS_START = 0x2A,
         MANUFACTURER_ID = 0x3E,
         REVISION_ID = 0x3F
-    }
+    };
 };
 
 #endif

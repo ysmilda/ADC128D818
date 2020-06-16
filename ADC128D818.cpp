@@ -35,9 +35,9 @@ bool ADC128::stop(void)
 
 bool ADC128::reset(void)
 {
-    _configuration |= (1 << 7);
+    _configuration = 0;
 
-    return write(CONFIGURATION, _configuration);
+    return write(CONFIGURATION, 1 << 7);
 }
 
 bool ADC128::write_configuration(ADC128_configuration configuration)
@@ -102,14 +102,19 @@ bool ADC128::read_interrupt_mask(ADC128_channels *masks)
 }
 
 // set_conversion_rate sets the conversion rate to either
-// true: continuous conversion mode
-// false: low power conversion mode
+// CONTINUOUS: continuous conversion mode
+// LOW_POWER: low power conversion mode
 // As the setting can only be done when the device is in shutdown mode we will first stop the device, edit the conversion rate and start it again.
 bool ADC128::set_conversion_rate(bool mode)
 {
-    if (!ADC128::stop())
+    uint8_t temp = _configuration;
+
+    if (temp & 0x01) // Check if the ADC has been started yet.
     {
-        return false;
+        if (!ADC128::stop()) // Stop the ADC.
+        {
+            return false;
+        }
     }
 
     if (!write(CONVERSION_RATE, mode))
@@ -117,12 +122,43 @@ bool ADC128::set_conversion_rate(bool mode)
         return false;
     }
 
-    return ADC128::start();
+    if (temp & 0x01) // Check if the ADC was started before changing the conversion rate.
+    {
+        if (!ADC128::start()) // Start the ADC.
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool ADC128::write_disabled_channels(ADC128_channels disabled)
 {
-    return write(CHANNEL_DISABLE, disabled.to_byte());
+    uint8_t temp = _configuration;
+
+    if (temp & 0x01) // Check if the ADC has been started yet.
+    {
+        if (!ADC128::stop()) // Stop the ADC.
+        {
+            return false;
+        }
+    }
+
+    if (!write(CHANNEL_DISABLE, disabled.to_byte()))
+    {
+        return false;
+    }
+
+    if (temp & 0x01) // Check if the ADC was started before changing the conversion rate.
+    {
+        if (!ADC128::start()) // Start the ADC.
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool ADC128::read_disabled_channels(ADC128_channels *disabled)
@@ -180,10 +216,10 @@ bool ADC128::read_busy_status(void)
 
     read(BUSY_STATUS, &reply, 1, 0);
 
-    if ((reply & 0x01) == 1 || ((reply >> 1) & 0x1) == 1))
-        {
-            return true;
-        }
+    if ((reply & 0x01) == 1 || ((reply >> 1) & 0x1) == 1)
+    {
+        return true;
+    }
 
     return false;
 }
@@ -199,7 +235,7 @@ uint16_t ADC128::read_ADC_channel(uint8_t channel)
 
     read(CHANNEL_READING_START + channel, reply, 2, 0);
 
-    return (uint16_t)(reply[0] << 8) + reply[1]; // Assuming it is MSB first, datasheet is unclear on the matter. Will need to test.
+    return (uint16_t)(reply[0] << 4) + (reply[1] >> 4); // The data is MSB first with 4 bytes padded on the right side. 
 }
 
 // set_channel_limits sets the upper and lower channel limits.
